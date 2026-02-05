@@ -27,13 +27,19 @@ public class ChineseChecker {
     // 多行注释结束
     private static final Pattern MULTI_LINE_COMMENT_END = Pattern.compile("\\*/");
     
-    // 字符串字面量
-    private static final Pattern STRING_LITERAL = Pattern.compile("\"([^\"]*)\"");
+    // 字符串字面量（支持转义字符）
+    private static final Pattern STRING_LITERAL = Pattern.compile("\"([^\"\\\\]*(\\\\.[^\"\\\\]*)*)\"");
+    
+    // 常量命名模式（全大写加下划线）
+    private static final Pattern CONSTANT_NAME = Pattern.compile("[A-Z_][A-Z0-9_]*");
+    
+    // 常量声明行模式
+    private static final Pattern CONSTANT_LINE = Pattern.compile(".*\\b[A-Z_][A-Z0-9_]*\\s*=.*");
     
     // 变量和常量声明（简化版本）
     private static final Pattern VARIABLE_DECLARATION = Pattern.compile(
-        "\\b(public|private|protected|static|final|transient|volatile)?\\s*" +
-        "\\b(int|long|short|byte|char|float|double|boolean|String|[A-Z][a-zA-Z0-9_]*)" +
+        "(public|private|protected|static|final|transient|volatile)?\\s*" +
+        "(int|long|short|byte|char|float|double|boolean|String|[A-Z][a-zA-Z0-9_]*)" +
         "\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*[=;]"
     );
     
@@ -129,21 +135,24 @@ public class ChineseChecker {
                 }
                 
                 // 检查单行注释
+                String codeBeforeComment = line;
                 Matcher singleCommentMatcher = SINGLE_LINE_COMMENT.matcher(line);
                 if (singleCommentMatcher.find()) {
                     String comment = singleCommentMatcher.group();
                     if (containsChinese(comment)) {
                         results.add(new CheckResult(file.getPath(), lineNumber, "注释", trimmedLine));
                     }
+                    // 移除注释部分，只分析注释前的代码
+                    codeBeforeComment = line.substring(0, singleCommentMatcher.start());
                 }
                 
                 // 检查字符串字面量（可能是常量值）
-                Matcher stringMatcher = STRING_LITERAL.matcher(line);
+                Matcher stringMatcher = STRING_LITERAL.matcher(codeBeforeComment);
                 while (stringMatcher.find()) {
                     String stringContent = stringMatcher.group(1);
                     if (containsChinese(stringContent)) {
                         // 判断是否是常量（简化判断：包含final或全大写变量名）
-                        if (line.contains("final") || line.matches(".*\\b[A-Z_][A-Z0-9_]*\\s*=.*")) {
+                        if (codeBeforeComment.contains("final") || CONSTANT_LINE.matcher(codeBeforeComment).matches()) {
                             results.add(new CheckResult(file.getPath(), lineNumber, "常量", trimmedLine));
                         } else {
                             results.add(new CheckResult(file.getPath(), lineNumber, "变量", trimmedLine));
@@ -152,11 +161,11 @@ public class ChineseChecker {
                 }
                 
                 // 检查变量名本身是否包含中文
-                Matcher varMatcher = VARIABLE_DECLARATION.matcher(line);
+                Matcher varMatcher = VARIABLE_DECLARATION.matcher(codeBeforeComment);
                 while (varMatcher.find()) {
                     String varName = varMatcher.group(3);
                     if (containsChinese(varName)) {
-                        if (line.contains("final") || varName.matches("[A-Z_][A-Z0-9_]*")) {
+                        if (codeBeforeComment.contains("final") || CONSTANT_NAME.matcher(varName).matches()) {
                             results.add(new CheckResult(file.getPath(), lineNumber, "常量", 
                                 "变量名包含中文: " + varName));
                         } else {
