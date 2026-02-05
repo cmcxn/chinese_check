@@ -12,7 +12,36 @@
 
 ## 使用方法
 
-### 1. 编译代码
+### 方式一：使用Maven（推荐）
+
+#### 1. 构建可执行JAR
+
+```bash
+mvn clean package
+```
+
+#### 2. 运行可执行JAR
+
+```bash
+java -jar target/chinese-checker.jar <要扫描的目录路径>
+```
+
+示例：
+
+```bash
+# 扫描test_samples目录
+java -jar target/chinese-checker.jar ./test_samples
+
+# 扫描src目录
+java -jar target/chinese-checker.jar ./src
+
+# 扫描当前目录
+java -jar target/chinese-checker.jar .
+```
+
+### 方式二：使用build.sh脚本
+
+#### 1. 编译代码
 
 ```bash
 ./build.sh
@@ -24,7 +53,7 @@
 javac -d bin src/main/java/com/chinese/check/ChineseChecker.java
 ```
 
-### 2. 运行扫描器
+#### 2. 运行扫描器
 
 ```bash
 java -cp bin com.chinese.check.ChineseChecker <要扫描的目录路径>
@@ -73,7 +102,9 @@ chinese_check/
 │                       └── ChineseChecker.java  # 主扫描器类
 ├── test_samples/                                # 测试样例
 │   ├── TestSample.java                         # 包含中文的测试文件
-│   └── CleanSample.java                        # 不包含中文的测试文件
+│   ├── CleanSample.java                        # 不包含中文的测试文件
+│   └── EdgeCaseTest.java                       # 边界情况测试
+├── pom.xml                                      # Maven项目配置
 ├── build.sh                                     # 编译脚本
 └── README.md                                    # 说明文档
 ```
@@ -84,3 +115,9 @@ chinese_check/
 - 递归扫描指定目录下的所有.java文件
 - 分析注释、字符串字面量和变量声明
 - 生成详细的检查报告，包括文件路径、行号、类型和内容
+
+## 构建工具
+
+- **Maven 3.x**：使用Maven Shade Plugin打包可执行JAR
+- **Java 17**：项目使用Java 17编译和运行
+- **可执行JAR**：生成的JAR文件包含所有依赖，可直接运行
